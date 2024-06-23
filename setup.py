@@ -2,13 +2,13 @@
 
 from setuptools import setup, find_packages
 try:
+    # Для pip 10 и выше
+    from pip._internal.network.session import PipSession
+    from pip._internal.req.req_file import parse_requirements
+except ImportError:
+    # Для старых версий pip
     from pip.download import PipSession
     from pip.req import parse_requirements
-except ImportError:
-    # It is quick hack to support pip 10 that has changed its internal
-    # structure of the modules.
-    from pip._internal.download import PipSession
-    from pip._internal.req.req_file import parse_requirements
 
 
 def get_requirements(source):
@@ -23,12 +23,15 @@ def get_requirements(source):
 
     install_reqs = parse_requirements(filename=source, session=PipSession())
 
-    return [str(ir.req) for ir in install_reqs]
+    try:
+        # pip 20.1+
+        return [str(ir.requirement) for ir in install_reqs]
+    except AttributeError:
+        # pip <= 20.0
+        return [str(ir.req) for ir in install_reqs]
 
 
 setup(
     packages=find_packages(),
     install_requires=get_requirements('requirements/requirements.txt')
 )
-
-
